@@ -13,7 +13,7 @@ Promise.Status = {
 function Promise:Constructor(Callback: (Reject: (...any) -> (), Resolve: (...any) -> ()) -> ())
 	self._ResolveQueue = {}
 	self._RejectQueue = {}
-	
+
 	self.Status = Promise.Status.Running
 
 	local Resolve = function(...)
@@ -43,10 +43,8 @@ function Promise:_Resolve(...)
 	self.Status = Promise.Status.Resolved
 	self._Value = table.pack(...)
 
-	coroutine.close(self._Thread)
-
-	for _, Callback in pairs(self._ResolveQueue) do
-		Callback(...)
+	for _, Callback in ipairs(self._ResolveQueue) do
+		task.spawn(Callback, ...)
 	end
 
 	self._ResolveQueue = nil
@@ -61,10 +59,8 @@ function Promise:_Reject(...)
 	self.Status = Promise.Status.Rejected
 	self._Value = table.pack(...)
 
-	coroutine.close(self._Thread)
-
-	for _, Callback in pairs(self._RejectQueue) do
-		Callback(...)
+	for _, Callback in ipairs(self._RejectQueue) do
+		task.spawn(Callback, ...)
 	end
 
 	self._RejectQueue = nil
@@ -81,11 +77,11 @@ function Promise:Then(ResolveCallback: (...any) -> (...any), RejectCallback: (..
 		elseif self.Status == Promise.Status.Rejected then
 			Reject(RejectCallback(unpack(self._Value)))
 		elseif self.Status == Promise.Status.Running then
-			self._ResolveQueue[#self._ResolveQueue+1] = function(...)
+			self._ResolveQueue[#self._ResolveQueue + 1] = function(...)
 				Resolve(ResolveCallback(...))
 			end
 
-			self._RejectQueue[#self._RejectQueue+1] = function(...)
+			self._RejectQueue[#self._RejectQueue + 1] = function(...)
 				Reject(RejectCallback(...))
 			end
 		end
@@ -113,11 +109,11 @@ function Promise:Wait()
 
 	local Running = coroutine.running()
 
-	self._ResolveQueue[#self._ResolveQueue+1] = function(...)
+	self._ResolveQueue[#self._ResolveQueue + 1] = function(...)
 		coroutine.resume(Running)
 	end
 
-	self._RejectQueue[#self._RejectQueue+1] = function(...)
+	self._RejectQueue[#self._RejectQueue + 1] = function(...)
 		coroutine.resume(Running)
 	end
 
@@ -148,9 +144,9 @@ end
 
 export type Promise = Object.Object<{
 	Status: any,
-	_Value: {any},
-	_ResolveQueue: {(...any) -> ()},
-	_RejectQueue: {(...any) -> ()},
+	_Value: { any },
+	_ResolveQueue: { (...any) -> () },
+	_RejectQueue: { (...any) -> () },
 	_Thread: thread,
 
 	Then: (self: Promise, ResolveCallback: (...any) -> (...any), RejectCallback: (...any) -> (...any)) -> (Promise),
@@ -160,6 +156,6 @@ export type Promise = Object.Object<{
 
 	Resolve: (...any) -> (Promise),
 	Reject: (...any) -> (Promise),
-}, (Callback: (Resolve: (...any) -> (), Reject: (...any) -> ()) -> ())>
+}, ((Resolve: (...any) -> (), Reject: (...any) -> ()) -> ())>
 
 return Promise :: Promise

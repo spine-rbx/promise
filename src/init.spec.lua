@@ -130,9 +130,8 @@ return function()
 			end)
 
 			expect(p.Status).to.equal(Promise.Status.Running)
-			p:Wait()
-			expect(p.Status).to.equal(Promise.Status.Resolved)
 			expect(p:Wait()).to.equal(1)
+			expect(p.Status).to.equal(Promise.Status.Resolved)
 		end)
 
 		it("should error on rejection", function()
@@ -145,6 +144,13 @@ return function()
 			expect(function()
 				p:Wait()
 			end).to.throw()
+		end)
+
+		it("should return if already resolved", function()
+			local p = Promise.Resolve(1)
+
+			expect(p.Status).to.equal(Promise.Status.Resolved)
+			expect(p:Wait()).to.equal(1)
 		end)
 	end)
 end
